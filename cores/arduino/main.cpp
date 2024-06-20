@@ -50,6 +50,7 @@ __attribute__((constructor(101))) void premain()
 
 int main(void)
 {
+
 #ifdef USBCON
     // TODO: remove this and only call it when the USB is attempted to
     // be used.

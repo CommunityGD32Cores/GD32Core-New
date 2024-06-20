@@ -188,12 +188,15 @@ extern const uint32_t gpio_pin[];
 #define NOT_INTERRUPT            NC
 
 /* Convert a digital pin to a PinName */
+#define PIN_NO_ALT(p)                 ((p) & ~ALTMASK)
 #ifndef ANALOG_PINS_LAST
-#define DIGITAL_TO_PINNAME(p)      (((uint32_t)p < DIGITAL_PINS_NUM) ? digital_pins[p] : NC)
+#define DIGITAL_TO_PINNAME_NO_ALT(p)  (((uint32_t)(p) < DIGITAL_PINS_NUM) ? digital_pins[p] : NC)
+#define DIGITAL_TO_PINNAME(p)         (PinName)((uint32_t)DIGITAL_TO_PINNAME_NO_ALT(PIN_NO_ALT(p)) | ((uint32_t)(p) & ALTMASK))
 #else
-#define DIGITAL_TO_PINNAME(p)      (((uint32_t)p < DIGITAL_PINS_NUM) ? digital_pins[p] : \
-                                    ((uint32_t)p >= ANALOG_PINS_START) && ((uint32_t)p <= ANALOG_PINS_LAST) ? \
-                                    digital_pins[analog_pins[p-ANALOG_PINS_START]] : NC)
+#define DIGITAL_TO_PINNAME_NO_ALT(p)  (((uint32_t)(p) < DIGITAL_PINS_NUM) ? digital_pins[p] : \
+                                       ((uint32_t)(p) >= ANALOG_PINS_START) && ((uint32_t)p <= ANALOG_PINS_LAST) ? \
+                                       digital_pins[analog_pins[(p)-ANALOG_PINS_START]] : NC)
+#define DIGITAL_TO_PINNAME(p)         (PinName)((uint32_t)DIGITAL_TO_PINNAME_NO_ALT(PIN_NO_ALT(p)) | ((uint32_t)(p) & ALTMASK))
 #endif
 /* Convert a PinName to a digital pin */
 uint32_t PinName_to_digital(PinName p);

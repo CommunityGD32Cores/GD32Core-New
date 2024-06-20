@@ -197,6 +197,17 @@ void EPBuffer<L>::flush()
             // Only start the next transmission if the device hasn't been
             // reset.
             this->txWaiting = true;
+#ifdef GD32F10x
+            if (this->ep == 0) {
+                // TODO: This is super suspect. There is some state-machining happening in the
+                // background in the usbd driver that we have to mimick here. Oof.
+                if (USBCore().usbDev().control.req.wLength) {
+                    USBCore().usbDev().control.ctl_state = USBD_CTL_DATA_IN;
+                } else {
+                    USBCore().usbDev().control.ctl_state = USBD_CTL_STATUS_IN;
+                }
+            }
+#endif
             USBCore().usbDev().drv_handler->ep_write((uint8_t*)this->buf, this->ep, this->len());
         }
         this->reset();
@@ -504,10 +515,31 @@ void handleReset(usb_dev *usbd)
 USBCore_::USBCore_()
 {
     /*
+     * This is here to ensure we're in a closed state in the event the 
+     * bootloader did not close the application. This is because when
+     * the application is open the alt function is active on the pin;
+     * if there is no external pullup, we temporarily use the D+ pin
+     * to signal to the host we've connected, which we can't do if the
+     * USB application is active.
+     */
+    USBD_CTL |= CTL_CLOSE;
+
+    /*
      * Use global ‘usbd’ here, instead of wrapped version, to avoid
      * initialization loop.
      */
     usb_init(&desc, ClassCore::structPtr());
+
+    /*
+     * After init the application may take some time to stabilize.
+     * This is the case if the bootloader didn't reset the application
+     * state before jumping to user code. If we service the interrupts
+     * too quickly after reset the application loses state and becomes 
+     * unresponsive.
+     */ 
+    volatile int i = 0;
+    for (; i<1000;) { i++; }
+
     usbd.user_data = this;
 
     oldResetHandler = usbd.drv_handler->ep_reset;
@@ -785,12 +817,21 @@ void USBCore_::transcSetup(usb_dev* usbd, uint8_t ep)
     if (reqstat == REQ_SUPP) {
         if (usbd->control.req.wLength == 0) {
             /* USB control transfer status in stage */
+#ifdef GD32F10x
+            usbd->control.ctl_state = USBD_CTL_STATUS_IN;
+#endif
             this->sendZLP(usbd, 0);
         } else {
             if (usbd->control.req.bmRequestType & USB_TRX_IN) {
+#ifdef GD32F10x
+                usbd->control.ctl_state = USBD_CTL_DATA_IN;
+#endif
                 usbd_ep_send(usbd, 0, usbd->transc_in[0].xfer_buf, usbd->transc_in[0].xfer_len);
             } else {
                 /* USB control transfer data out stage */
+#ifdef GD32F10x
+                usbd->control.ctl_state = USBD_CTL_DATA_OUT;
+#endif               
                 this->sendZLP(usbd, 0);
                 // TODO: this is a vestige of the copy from GD’s
                 //source. Unfortunately, it runs afoul of pluggable

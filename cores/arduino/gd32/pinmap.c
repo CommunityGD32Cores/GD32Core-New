@@ -70,8 +70,11 @@ void pin_function(PinName pin, int function)
 #if defined(GD32F30x) || defined(GD32F10x)|| defined(GD32E50X)
     gpio_init(gpio, GD_GPIO_MODE[mode], GD_GPIO_SPEED[speed], gd_pin);
     if (remap != 0) {
+        // MSB is disable
+        bool disable = remap & ~(PIN_REMAP_MASK >> 1);
+        remap &= PIN_REMAP_MASK >> 1;
         rcu_periph_clock_enable(RCU_AF);
-        gpio_pin_remap_config(GD_GPIO_REMAP[remap], ENABLE);
+        gpio_pin_remap_config(GD_GPIO_REMAP[remap], disable ? DISABLE : ENABLE);
     }
 #elif defined(GD32F3x0) || defined(GD32F1x0) || defined(GD32F4xx) || defined(GD32E23x)
     uint32_t af  =   GD_PIN_AF_GET(function);

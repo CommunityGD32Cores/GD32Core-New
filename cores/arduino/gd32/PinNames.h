@@ -24,6 +24,15 @@
 extern "C" {
 #endif
 
+#define ALT1    0x1000
+#define ALT2    0x2000
+#define ALT3    0x3000
+#define ALT4    0x4000
+#define ALT5    0x5000
+#define ALT6    0x6000
+#define ALT7    0x7000
+#define ALTMASK 0x7000
+
 typedef enum {
 #if defined GPIOA
     PORTA_0  = 0x00,
@@ -200,6 +209,11 @@ typedef enum {
     ADC_TEMP = 0xF0,
     ADC_VREF = 0xF1,
 
+// pin names specific to the variant
+#if __has_include("PinNamesVar.h")
+#include "PinNamesVar.h"
+#endif
+
     NC = (int)0xFFFFFFFF
 } PinName;
 
@@ -219,14 +233,14 @@ struct gpio_function {
     configure the speed, mode, pull, speed, af and remap function of pins
     the parameter function contains the configuration information,show as below
     bit 0:2   gpio mode input / output / af / analog
-    bit 3:8   remap
-    bit 9:10  gpio speed
-    bit 11    output push-pull / open drain
-    bit 12:13 no pull, pull-up, pull-down
-    bit 14:17 channel af function
-    bit 18:22 channel of adc/timer/dac
-    bit 23    PWM channel-ON
-    bit 24:31 reserved
+    bit 3:9   remap  
+    bit 10:11 gpio speed
+    bit 12    output push-pull / open drain
+    bit 13:14 no pull, pull-up, pull-down
+    bit 15:18 channel af function
+    bit 19:23 channel of adc/timer/dac
+    bit 24    PWM channel-ON
+    bit 25:31 reserved
 */
 typedef enum {
     /* pin mode */
@@ -234,31 +248,31 @@ typedef enum {
     PIN_MODE_MASK  = 0x07,
 
     /* pin seed */
-    PIN_SPEED_SHIFT = 9,
+    PIN_SPEED_SHIFT = 10,
     PIN_SPEED_MASK  = 0x03,
 
-    /* pin remap */
+    /* pin remap, including disable bit */
     PIN_REMAP_SHIFT = 3,
-    PIN_REMAP_MASK  = 0x3F,
+    PIN_REMAP_MASK  = 0x7F,
 
     /* pin output mode */
-    PIN_OUTPUT_MODE_SHIFT = 11,
+    PIN_OUTPUT_MODE_SHIFT = 12,
     PIN_OUTPUT_MODE_MASK  = 0x01,
 
     /* pin pull_up_down */
-    PIN_PULL_STATE_SHIFT = 12,
+    PIN_PULL_STATE_SHIFT = 13,
     PIN_PULL_STATE_MASK  = 0x03,
 
     /* pin af */
-    PIN_AF_SHIFT = 14,
+    PIN_AF_SHIFT = 15,
     PIN_AF_MASK  = 0xFF,
 
     /* pin channel */
-    PIN_CHANNEL_SHIFT = 18,
+    PIN_CHANNEL_SHIFT = 19,
     PIN_CHANNEL_MASK  = 0x1F,
 
     /* pin PWM channel-ON state */
-    PIN_CHON_SHIFT = 23,
+    PIN_CHON_SHIFT = 24,
     PIN_CHON_MASK  = 0x01,
 } PinFunctionDivide;
 
@@ -277,15 +291,12 @@ typedef enum {
 #define GD_PIN_CHANNEL_GET(X)     ((X >> PIN_CHANNEL_SHIFT) & PIN_CHANNEL_MASK)
 #define GD_PIN_CHON_GET(X)        ((X >> PIN_CHON_SHIFT) & PIN_CHON_MASK)
 
-
-
 // This typedef is used to extend the PinMode typedef enum
 // in the ArduinoAPI, since they don't have contants
 typedef enum {
     INPUT_ANALOG = 99,  // We assume that the Arduino core will never have 99 PinModes
     OUTPUT_OPEN_DRAIN   // It'd be cleaner to be able to count the size of that enum
 } PinModeExtension;
-
 
 typedef enum {
     PIN_MODE_INPUT         = 0,
@@ -328,6 +339,7 @@ enum {
                                                   ((CHN & PIN_CHANNEL_MASK) << PIN_CHANNEL_SHIFT) | ((CHON & PIN_CHON_MASK) << PIN_CHON_SHIFT))
 #define GD_PIN_FUNCTION3(MODE, ODPP, AFN) ((int)(MODE & PIN_MODE_MASK) | ((ODPP & PIN_OUTPUT_MODE_MASK) << PIN_OUTPUT_MODE_SHIFT) | ((AFN & PIN_AF_MASK) << PIN_AF_SHIFT))
 #define GD_PIN_FUNCTION4(MODE, ODPP, PUPD, AFN) ((int)(MODE & PIN_MODE_MASK) | ((ODPP & PIN_OUTPUT_MODE_MASK) << PIN_OUTPUT_MODE_SHIFT) | ((PUPD & PIN_PULL_STATE_MASK) << PIN_PULL_STATE_SHIFT )  | ((AFN & PIN_AF_MASK) << PIN_AF_SHIFT))
+#define GD_PIN_FUNCTION5(MODE, ODPP, PUPD, REMAP) ((int)(MODE & PIN_MODE_MASK) | ((ODPP & PIN_OUTPUT_MODE_MASK) << PIN_OUTPUT_MODE_SHIFT) | ((PUPD & PIN_PULL_STATE_MASK) << PIN_PULL_STATE_SHIFT )  | ((REMAP & PIN_REMAP_MASK) << PIN_REMAP_SHIFT))
 #define GD_PIN_FUNC_ANALOG_CH(CHN) ((int)(PIN_MODE_ANALOG & PIN_MODE_MASK) |\
                                 ((CHN & PIN_CHANNEL_MASK) << PIN_CHANNEL_SHIFT) |\
                                 (((int)PIN_PUPD_NONE & PIN_PULL_STATE_MASK) << PIN_PULL_STATE_SHIFT))

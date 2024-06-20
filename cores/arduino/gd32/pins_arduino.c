@@ -25,6 +25,7 @@ extern "C" {
 uint32_t PinName_to_digital(PinName p)
 {
     uint32_t i = DIGITAL_PINS_NUM;
+    p &= ~ALTMASK;
     if (GD_PORT_GET(p) <= (PORTEND - 1)) {
         for (i = 0; i < DIGITAL_PINS_NUM; i++) {
             if (digital_pins[i] == p) {
@@ -62,6 +63,7 @@ bool  pin_in_analog_pins(uint32_t pin)
     bool ret = false;
 #if ANALOG_PINS_NUM > 0
 #ifndef ANALOG_PINS_LAST
+    pin &= ~ALTMASK;
     ret = (pin >= A0) && (pin < (A0 + ANALOG_PINS_NUM));
 #else
     for (uint32_t i = 0; i < ANALOG_PINS_NUM; i++) {
@@ -80,6 +82,7 @@ uint32_t digital_pin_to_analog(uint32_t pin)
     uint32_t ret = ANALOG_PINS_NUM;
 #if ANALOG_PINS_NUM > 0
 #ifndef ANALOG_PINS_LAST
+    pin &= ~ALTMASK;
     ret = pin - A0;
 #else
     for (uint32_t i = 0; i < ANALOG_PINS_NUM; i++) {

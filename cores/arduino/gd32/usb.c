@@ -9,8 +9,13 @@ static void rcu_config()
 {
     uint32_t system_clock = rcu_clock_freq_get(CK_SYS);
 
+    /* disable USB APB1 clock (bootloader may have left it running) */
+    rcu_periph_clock_disable(RCU_USBD);
+
+#ifdef RCC_AHBPeriph_GPIO_PULLUP
     /* enable USB pull-up pin clock */
     rcu_periph_clock_enable(RCC_AHBPeriph_GPIO_PULLUP);
+#endif
 
     if (48000000U == system_clock) {
         rcu_usb_clock_config(RCU_CKUSB_CKPLL_DIV1);
@@ -30,8 +35,13 @@ static void rcu_config()
 
 static void gpio_config()
 {
+#ifdef USB_PULLUP
+#ifndef USB_PULLUP_PIN_MODE
+#define USB_PULLUP_PIN_MODE GPIO_MODE_OUT_PP
+#endif
     /* configure usb pull-up pin */
-    gpio_init(USB_PULLUP, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, USB_PULLUP_PIN);
+    gpio_init(USB_PULLUP, USB_PULLUP_PIN_MODE, GPIO_OSPEED_50MHZ, USB_PULLUP_PIN);
+#endif
 }
 
 static void nvic_config()
@@ -53,6 +63,10 @@ void usb_init(usb_desc* desc, usb_class* class_core)
 {
     rcu_config();
     gpio_config();
+
+    // Wait a bit after GPIO setup so the host can register a disconnect from the port.
+    volatile int i = 0;
+    for (;i<5000;){i++;}
 
     usbd_init(&usbd, desc, class_core);
 }
